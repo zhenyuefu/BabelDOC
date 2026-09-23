@@ -20,6 +20,9 @@ from babeldoc.format.pdf.document_il import PdfFormula
 from babeldoc.format.pdf.document_il import PdfParagraphComposition
 from babeldoc.format.pdf.document_il import PdfStyle
 from babeldoc.format.pdf.document_il import il_version_1
+from babeldoc.format.pdf.document_il.midend.background_fill_order import (
+    lower_background_fills,
+)
 from babeldoc.format.pdf.document_il.utils.fontmap import FontMapper
 from babeldoc.format.pdf.document_il.utils.formular_helper import update_formula_data
 from babeldoc.format.pdf.document_il.utils.layout_helper import box_to_tuple
@@ -1128,11 +1131,13 @@ class Typesetting:
                 for page in document.page:
                     self.translation_config.raise_if_cancelled()
                     self.render_page(page)
+                    lower_background_fills(page)
                     pbar.advance()
         else:
             for page in document.page:
                 self.translation_config.raise_if_cancelled()
                 self.render_page(page)
+                lower_background_fills(page)
 
     def render_page(self, page: il_version_1.Page):
         fonts: dict[
