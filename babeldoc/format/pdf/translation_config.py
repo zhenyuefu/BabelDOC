@@ -14,6 +14,7 @@ from babeldoc.format.pdf.split_manager import BaseSplitStrategy
 from babeldoc.format.pdf.split_manager import PageCountStrategy
 from babeldoc.format.pdf.stage_hooks import ILStage
 from babeldoc.format.pdf.stage_hooks import ILTranslatorFactory
+from babeldoc.format.pdf.stage_hooks import PartFinishedCallback
 from babeldoc.format.pdf.stage_hooks import validate_extra_il_stages
 from babeldoc.glossary import Glossary
 from babeldoc.glossary import GlossaryEntry
@@ -224,6 +225,7 @@ class TranslationConfig:
         disable_same_text_fallback: bool = False,
         il_translator_factory: ILTranslatorFactory | None = None,
         extra_il_stages: Mapping[str, Sequence[ILStage]] | None = None,
+        on_part_finished: PartFinishedCallback | None = None,
     ):
         self.translator = translator
         self.term_extraction_translator = term_extraction_translator or translator
@@ -386,6 +388,9 @@ class TranslationConfig:
         # academic-reader fork: see babeldoc.format.pdf.stage_hooks
         self.il_translator_factory = il_translator_factory
         self.extra_il_stages = validate_extra_il_stages(extra_il_stages)
+        self.on_part_finished = on_part_finished
+        # 0-based index of this config's first page in the original document; set per split part.
+        self.source_page_offset = 0
 
         if self.ocr_workaround:
             self.remove_non_formula_lines = False

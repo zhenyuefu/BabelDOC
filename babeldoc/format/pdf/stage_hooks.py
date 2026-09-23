@@ -1,6 +1,6 @@
 """Extension points for callers that drive BabelDOC's PDF pipeline.
 
-Two hooks, both off by default so upstream behaviour is unchanged:
+Hooks, all off by default so upstream behaviour is unchanged:
 
 * ``TranslationConfig(il_translator_factory=...)`` replaces the paragraph translation stage.
   The factory receives ``(translate_engine, translation_config)`` and returns an object with
@@ -10,6 +10,9 @@ Two hooks, both off by default so upstream behaviour is unchanged:
   point. Each stage declares ``stage_name`` and ``stage_weight`` (registered with the progress
   monitor) and implements ``process(docs, mupdf_doc)``, returning the document or ``None`` to
   keep it.
+* ``TranslationConfig(on_part_finished=...)`` is called after each split part (see
+  ``PartFinishedCallback``). Each part's config carries ``source_page_offset`` so layout models
+  can map part-local ``page.page_number`` back to the original document.
 """
 
 from __future__ import annotations
@@ -47,6 +50,11 @@ class ILTranslatorLike(Protocol):
 
 
 ILTranslatorFactory = Callable[[Any, Any], ILTranslatorLike]
+
+# (part_index, part TranslateResult, first_page, last_page) with 0-based pages of the original
+# document. Called synchronously after a split part is written and before its working dir is
+# cleaned, so callers can publish per-part previews.
+PartFinishedCallback = Callable[[int, Any, int, int], None]
 
 
 def validate_extra_il_stages(

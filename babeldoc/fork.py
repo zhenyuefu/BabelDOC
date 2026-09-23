@@ -6,5 +6,5 @@ Bump FORK_REVISION whenever the fork's public extension surface changes.
 """
 
 FORK_NAME = "academic-reader"
-FORK_REVISION = 1
+FORK_REVISION = 2
 UPSTREAM_VERSION = "0.6.4"

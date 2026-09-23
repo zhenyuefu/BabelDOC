@@ -597,6 +597,7 @@ def do_translate(
                                             page - split_point.start_page + 1
                                         )
                                 part_config.pages = None
+                                part_config.source_page_offset = split_point.start_page
                                 part_config.page_ranges = [
                                     (x, x) for x in should_translate_pages
                                 ]
@@ -671,6 +672,13 @@ def do_translate(
                                     part_config,
                                 )
                                 results[i] = result
+                                if translation_config.on_part_finished is not None:
+                                    translation_config.on_part_finished(
+                                        i,
+                                        result,
+                                        split_point.start_page,
+                                        split_point.end_page,
+                                    )
 
                             except Exception as e:
                                 logger.error(f"Error in part {i}: {e}")

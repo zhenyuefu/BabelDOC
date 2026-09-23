@@ -132,3 +132,52 @@ def test_pipeline_runs_injected_stage_and_translator_in_order(tmp_path: Path) ->
     assert calls == [("stage", 1, True), ("translate", "OfflineTranslator")]
     assert Path(result.mono_pdf_path).exists()
     assert Path(result.dual_pdf_path).exists()
+
+
+class OffsetRecordingLayout(NoLayout):
+    def __init__(self):
+        self.seen = []
+
+    def handle_document(self, pages, mupdf_doc, translate_config, save_debug_image):
+        for page in pages:
+            self.seen.append((page.page_number, translate_config.source_page_offset))
+            yield page, YoloResult(names={}, boxes=[])
+
+
+def test_split_parts_report_offsets_and_finish_before_cleanup(tmp_path: Path) -> None:
+    source = tmp_path / "two.pdf"
+    doc = pymupdf.open()
+    for index in range(2):
+        page = doc.new_page(width=595, height=842)
+        page.insert_text(
+            (72, 100), f"Page {index} has one sentence to keep.", fontsize=12
+        )
+    doc.save(source)
+    layout = OffsetRecordingLayout()
+    finished = []
+
+    def on_part_finished(index, result, first, last):
+        finished.append((index, first, last, Path(result.mono_pdf_path).exists()))
+
+    config = TranslationConfig(
+        translator=OfflineTranslator(),
+        input_file=source,
+        lang_in="en",
+        lang_out="zh",
+        doc_layout_model=layout,
+        output_dir=tmp_path / "out",
+        working_dir=tmp_path / "work",
+        use_rich_pbar=False,
+        auto_extract_glossary=False,
+        skip_scanned_detection=True,
+        watermark_output_mode=WatermarkOutputMode.NoWatermark,
+        split_strategy=TranslationConfig.create_max_pages_per_part_split_strategy(1),
+        on_part_finished=on_part_finished,
+    )
+
+    result = translate(config)
+
+    assert config.source_page_offset == 0
+    assert layout.seen == [(0, 0), (0, 1)]
+    assert finished == [(0, 0, 0, True), (1, 1, 1, True)]
+    assert pymupdf.open(result.mono_pdf_path).page_count == 2
