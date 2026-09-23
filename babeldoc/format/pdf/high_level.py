@@ -49,6 +49,8 @@ from babeldoc.format.pdf.document_il.utils.fontmap import FontMapper
 from babeldoc.format.pdf.document_il.xml_converter import XMLConverter
 from babeldoc.format.pdf.result_merger import ResultMerger
 from babeldoc.format.pdf.split_manager import SplitManager
+from babeldoc.format.pdf.stage_hooks import AFTER_LAYOUT
+from babeldoc.format.pdf.stage_hooks import run_extra_il_stages
 from babeldoc.format.pdf.translation_config import TranslateResult
 from babeldoc.format.pdf.translation_config import TranslationConfig
 from babeldoc.format.pdf.translation_config import WatermarkOutputMode
@@ -293,6 +295,14 @@ def get_translation_stage(
             should_remove.append(ILTranslator.stage_name)
 
     result = [x for x in result if x[0] not in should_remove]
+    if not translation_config.only_parse_generate_pdf:
+        # academic-reader fork: inserted IL stages report progress under their own names.
+        anchor = [name for name, _ in result].index(LayoutParser.stage_name) + 1
+        extra = [
+            (stage.stage_name, stage.stage_weight)
+            for stage in translation_config.extra_il_stages.get(AFTER_LAYOUT, [])
+        ]
+        result[anchor:anchor] = extra
     return result
 
 
@@ -953,6 +963,7 @@ def _do_translate_single(
     logger.debug("start generating layouts")
     docs = LayoutParser(translation_config).process(docs, doc_pdf2zh)
     logger.debug("finish generating layouts")
+    docs = run_extra_il_stages(AFTER_LAYOUT, docs, doc_pdf2zh, translation_config)
     close_process_pool()
     if translation_config.debug:
         xml_converter.write_json(
@@ -995,7 +1006,11 @@ def _do_translate_single(
         )
 
     if not translation_config.skip_translation:
-        if support_llm_translate:
+        if translation_config.il_translator_factory is not None:
+            il_translator = translation_config.il_translator_factory(
+                translate_engine, translation_config
+            )
+        elif support_llm_translate:
             il_translator = ILTranslatorLLMOnly(translate_engine, translation_config)
         else:
             il_translator = ILTranslator(translate_engine, translation_config)

@@ -4,12 +4,17 @@ import shutil
 import tempfile
 import threading
 from collections import Counter
+from collections.abc import Mapping
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
 from babeldoc.const import CACHE_FOLDER
 from babeldoc.format.pdf.split_manager import BaseSplitStrategy
 from babeldoc.format.pdf.split_manager import PageCountStrategy
+from babeldoc.format.pdf.stage_hooks import ILStage
+from babeldoc.format.pdf.stage_hooks import ILTranslatorFactory
+from babeldoc.format.pdf.stage_hooks import validate_extra_il_stages
 from babeldoc.glossary import Glossary
 from babeldoc.glossary import GlossaryEntry
 from babeldoc.progress_monitor import ProgressMonitor
@@ -217,6 +222,8 @@ class TranslationConfig:
         metadata_extra_data: str | None = None,
         term_pool_max_workers: int | None = None,
         disable_same_text_fallback: bool = False,
+        il_translator_factory: ILTranslatorFactory | None = None,
+        extra_il_stages: Mapping[str, Sequence[ILStage]] | None = None,
     ):
         self.translator = translator
         self.term_extraction_translator = term_extraction_translator or translator
@@ -376,6 +383,9 @@ class TranslationConfig:
             "cache_hit_prompt_tokens": 0,
         }
         self.disable_same_text_fallback = disable_same_text_fallback
+        # academic-reader fork: see babeldoc.format.pdf.stage_hooks
+        self.il_translator_factory = il_translator_factory
+        self.extra_il_stages = validate_extra_il_stages(extra_il_stages)
 
         if self.ocr_workaround:
             self.remove_non_formula_lines = False
