@@ -209,6 +209,12 @@ class ParagraphFinder:
             for page in document.page:
                 total_paragraph_count += len(page.pdf_paragraph)
             if total_paragraph_count == 0:
+                if (
+                    self.translation_config.allow_empty_parts
+                    and self.translation_config.split_strategy is not None
+                ):
+                    logger.info("Split part without paragraphs; passing it through untranslated.")
+                    return
                 raise ExtractTextError("The document contains no paragraphs.")
 
             if self.check_cid_paragraph(document):
@@ -293,7 +299,7 @@ class ParagraphFinder:
         for paragraph in paragraphs:
             self.update_paragraph_data(paragraph, update_unicode=True)
 
-        if self.translation_config.ocr_workaround:
+        if self.translation_config.is_ocr_page(page):
             self.add_text_fill_background(page)
             # since this is ocr file,
             # image characters are not needed

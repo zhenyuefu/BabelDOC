@@ -4,6 +4,7 @@ import shutil
 import tempfile
 import threading
 from collections import Counter
+from collections.abc import Iterable
 from collections.abc import Mapping
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -226,6 +227,8 @@ class TranslationConfig:
         il_translator_factory: ILTranslatorFactory | None = None,
         extra_il_stages: Mapping[str, Sequence[ILStage]] | None = None,
         on_part_finished: PartFinishedCallback | None = None,
+        ocr_workaround_pages: Iterable[int] | None = None,
+        allow_empty_parts: bool = False,
     ):
         self.translator = translator
         self.term_extraction_translator = term_extraction_translator or translator
@@ -391,9 +394,24 @@ class TranslationConfig:
         self.on_part_finished = on_part_finished
         # 0-based index of this config's first page in the original document; set per split part.
         self.source_page_offset = 0
+        # academic-reader fork: OCR workaround for selected pages only (0-based, whole document),
+        # e.g. scanned pages given a synthetic invisible text layer inside a born-digital paper.
+        self.ocr_workaround_pages = frozenset(ocr_workaround_pages or ())
+        # academic-reader fork: a split part without any paragraph (a full-page figure, a scan
+        # without OCR text) passes through untranslated instead of failing the whole document.
+        # The caller then checks that the document as a whole had something to translate.
+        self.allow_empty_parts = allow_empty_parts
 
         if self.ocr_workaround:
             self.remove_non_formula_lines = False
+
+    def is_ocr_page(self, page) -> bool:
+        """OCR workaround for this IL page: globally, or for its page in the whole document."""
+        if self.ocr_workaround:
+            return True
+        if page is None or page.page_number is None:
+            return False
+        return page.page_number + self.source_page_offset in self.ocr_workaround_pages
 
     def parse_pages(self, pages_str: str | None) -> list[tuple[int, int]] | None:
         """解析页码字符串，返回页码范围列表

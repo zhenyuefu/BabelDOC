@@ -879,9 +879,10 @@ class PDFCreater:
                 )
 
         # Convert rectangles to render units (only for OCR workaround or debug)
+        ocr_page = translation_config.is_ocr_page(page)
         for i, rect in enumerate(page.pdf_rectangle):
             if (
-                translation_config.ocr_workaround
+                ocr_page
                 and not rect.debug_info
                 and rect.fill_background
             ) or (translation_config.debug and rect.debug_info):
@@ -889,7 +890,7 @@ class PDFCreater:
                     rect, "render_order", 10
                 )  # Rectangles render first
                 sub_render_order = getattr(rect, "sub_render_order", i)
-                line_width = 0.1 if translation_config.ocr_workaround else 0.4
+                line_width = 0.1 if ocr_page else 0.4
                 render_units.append(
                     RectangleRenderUnit(
                         rect, render_order, sub_render_order, line_width

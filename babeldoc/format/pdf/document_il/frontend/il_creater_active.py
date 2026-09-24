@@ -1392,7 +1392,7 @@ class ActiveILCreater:
             render_order=char.render_order,
             sub_render_order=0,
         )
-        if self.translation_config.ocr_workaround:
+        if self.translation_config.is_ocr_page(self.current_page):
             pdf_char.pdf_style.graphic_state = BLACK
             pdf_char.render_order = None
         if pdf_style.font_size == 0.0:

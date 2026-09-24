@@ -6,5 +6,5 @@ Bump FORK_REVISION whenever the fork's public extension surface changes.
 """
 
 FORK_NAME = "academic-reader"
-FORK_REVISION = 3  # r3: rotated pages keep the unrotated IL cropbox
+FORK_REVISION = 4  # r3: unrotated IL cropbox for /Rotate pages; r4: per-page OCR workaround, empty parts
 UPSTREAM_VERSION = "0.6.4"
