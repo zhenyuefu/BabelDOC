@@ -59,14 +59,19 @@ def raw_page_cropbox(page: PreparedPdfPage) -> tuple[float, float, float, float]
     return float(x0), float(y0), float(x1), float(y1)
 
 
+# academic-reader fork: the native parser emits characters, curves and forms in the
+# unrotated page frame (the output page keeps /Rotate), so the IL cropbox and the offset
+# applied to the page's base operations must stay in that frame too. The pdfminer-style
+# legacy box swaps axes for /Rotate 90/270 — (0, 0, 595, 842) became (0, 595, 842, 0) —
+# which shifted every element of a rotated page by -595pt: text slid off the page and
+# figures and formulas disappeared. `visual_roundtrip_mode` was never enabled upstream.
 def il_page_cropbox(
     page: PreparedPdfPage,
     *,
     visual_roundtrip_mode: bool = False,
 ) -> tuple[float, float, float, float]:
-    if visual_roundtrip_mode:
-        return raw_page_cropbox(page)
-    return legacy_page_cropbox(page)
+    _ = visual_roundtrip_mode
+    return raw_page_cropbox(page)
 
 
 def page_base_operation_cropbox(
@@ -74,6 +79,5 @@ def page_base_operation_cropbox(
     *,
     visual_roundtrip_mode: bool = False,
 ) -> tuple[float, float, float, float]:
-    if visual_roundtrip_mode:
-        return raw_page_cropbox(page)
-    return legacy_page_cropbox(page)
+    _ = visual_roundtrip_mode
+    return raw_page_cropbox(page)
